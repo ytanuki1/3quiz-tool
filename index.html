@@ -172,9 +172,25 @@
             font-size: 1.3rem;
             font-weight: bold;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px; /* 画像がある場合のためにマージンを少し調整 */
             line-height: 1.6;
             color: #1a202c;
+        }
+
+        /* 画像表示用のスタイル追加 */
+        .question-image-container {
+            text-align: center;
+            margin-bottom: 30px;
+            min-height: 0; /* 高さがなくても崩れないように */
+        }
+
+        .question-image {
+            max-width: 100%;
+            max-height: 250px; /* 高くなりすぎないように制限 */
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            object-fit: contain;
+            display: inline-block;
         }
 
         .options-grid {
@@ -386,9 +402,10 @@
         </div>
 
         <p style="margin-bottom: 10px; color: #718096; font-size: 0.9rem;">
-            または直接入力：<code>[問題文, 選択肢1, 選択肢2, 選択肢3, 正解番号(1-3)]</code>
+            または直接入力：<br>
+            <code>[問題文, 選択肢1, 選択肢2, 選択肢3, 正解番号(1-3), (任意)画像URL]</code>
         </p>
-        <textarea id="input-data" placeholder="[日本の首都は？, 大阪, 東京, 京都, 2],&#10;[赤い果物は？, りんご, バナナ, メロン, 1]"></textarea>
+        <textarea id="input-data" placeholder="[日本の首都は？, 大阪, 東京, 京都, 2],&#10;[この果物は？, りんご, みかん, ぶどう, 1, https://example.com/apple.jpg]"></textarea>
         
         <button class="btn" onclick="startQuiz()">問題を開始</button>
         <p id="error-msg" style="color: #e53e3e; margin-top: 15px; display: none; text-align: center; font-weight:bold;"></p>
@@ -407,6 +424,9 @@
         <div class="question-text" id="question-text">
             ここに問題文が表示されます
         </div>
+
+        <div id="question-image-container" class="question-image-container hidden">
+            </div>
         
         <div class="options-grid" id="options-container">
             </div>
@@ -467,10 +487,14 @@
             let parts = content.split(',').map(item => item.trim());
             
             if (parts.length >= 5) {
+                // 画像URLが存在する場合は6番目の要素を取得、なければnull
+                let imageUrl = (parts.length >= 6 && parts[5].trim() !== "") ? parts[5].trim() : null;
+
                 parsed.push({
                     question: parts[0],
                     options: [parts[1], parts[2], parts[3]],
-                    answer: parseInt(parts[4])
+                    answer: parseInt(parts[4]),
+                    imageUrl: imageUrl
                 });
             }
         });
@@ -491,7 +515,7 @@
         quizData = parseInput(inputVal);
 
         if (quizData.length === 0) {
-            errorMsg.textContent = "問題が見つかりませんでした。形式：[問題, 選択1, 選択2, 選択3, 正解番号]";
+            errorMsg.textContent = "問題が見つかりませんでした。形式：[問題, 選択1, 選択2, 選択3, 正解番号, (任意)画像URL]";
             errorMsg.style.display = 'block';
             return;
         }
@@ -525,6 +549,17 @@
 
         // Update Text
         document.getElementById('question-text').textContent = currentQ.question;
+
+        // --- Image Handling Start ---
+        const imgContainer = document.getElementById('question-image-container');
+        if (currentQ.imageUrl) {
+            imgContainer.innerHTML = `<img src="${currentQ.imageUrl}" class="question-image" alt="参考画像">`;
+            imgContainer.classList.remove('hidden');
+        } else {
+            imgContainer.innerHTML = '';
+            imgContainer.classList.add('hidden');
+        }
+        // --- Image Handling End ---
 
         // Generate Buttons
         const optionsContainer = document.getElementById('options-container');
@@ -589,7 +624,7 @@
     function showResults() {
         document.getElementById('quiz-screen').classList.add('hidden');
         
-        // 修正点: hiddenクラスを削除することで、CSSの !important を無効化し表示可能にする
+        // 結果画面を表示
         const resultScreen = document.getElementById('result-screen');
         resultScreen.classList.remove('hidden');
         resultScreen.style.display = 'flex'; 
